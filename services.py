@@ -11,8 +11,8 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 class Service:
 
-    def __init__(self, game_id: int):
-        self._game_id = game_id
+    def __init__(self):
+        self._game_id = os.getenv('GAME_ID', 0)
         self._url = os.getenv('URL', '')
         self._token = os.getenv('TOKEN', '')
         self._headers = {

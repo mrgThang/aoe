@@ -145,7 +145,7 @@ class MapController:
         self._craftsmen_position = Position(x=-1, y=-1)
 
     def button_click(self):
-        services: Service = Service(game_id=19)
+        services: Service = Service()
         data = services.get_game_with_game_id()
         if self._my_map:
             self._my_map.delete(canvas=self._canvas)
