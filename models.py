@@ -1,5 +1,5 @@
-import datetime
 import tkinter as tk
+
 from PIL import Image, ImageTk
 
 
@@ -15,14 +15,20 @@ class Position:
 class AbstractObject:
     position: Position
     rectangle: int
-    is_on_click: bool
+    border: int
+    is_chosen: bool
 
     def __init__(self, position: Position):
         self.position = position
-        self.is_on_click = False
+        self.is_chosen = False
+        self.border = None
+        self.rectangle = None
 
     def delete(self, canvas: tk.Canvas):
-        canvas.delete(self.rectangle)
+        if self.rectangle:
+            canvas.delete(self.rectangle)
+        if self.border:
+            canvas.delete(self.border)
 
     def display(self, x1: int, y1: int,
                 x2: int, y2: int, canvas: tk.Canvas):
@@ -32,10 +38,13 @@ class AbstractObject:
                             x2: int, y2: int, canvas: tk.Canvas):
         pass
 
-    def on_click(self, event, x1: int, y1: int, x2: int, y2: int, canvas: tk.Canvas):
+    def on_click(self, event, canvas: tk.Canvas, x1: int, y1: int, x2: int, y2: int):
         return False
 
     def on_hover(self, event, canvas: tk.Canvas, x1: int, y1: int, x2: int, y2: int):
+        pass
+
+    def change_color(self, canvas: tk.Canvas):
         pass
 
 
@@ -98,12 +107,20 @@ class Neutral(AbstractObjectWithColor):
         if x1 <= event.x <= x2 and y1 <= event.y <= y2:
             canvas.itemconfig(self.rectangle, fill='blue')
         else:
-            canvas.itemconfig(self.rectangle, fill='white')
+            if not self.is_chosen:
+                canvas.itemconfig(self.rectangle, fill='white')
 
-    def on_click(self, event, x1: int, y1: int, x2: int, y2: int, canvas: tk.Canvas):
-        if x1 <= event.x <= x2 and y1 <= event.y <= y2:
-            return True
+    def on_click(self, event, canvas: tk.Canvas,
+                 x1: int, y1: int, x2: int, y2: int):
+        if not self.is_chosen:
+            if x1 <= event.x <= x2 and y1 <= event.y <= y2:
+                self.is_chosen = True
+                return True
         return False
+
+    def change_color(self, canvas: tk.Canvas):
+        if self.is_chosen:
+            canvas.itemconfig(self.rectangle, fill='blue')
 
 
 class CraftsMenA(AbstractObjectWithImage):
@@ -111,11 +128,11 @@ class CraftsMenA(AbstractObjectWithImage):
     def __init__(self, position: Position):
         super().__init__(position=position, image_path="images/craftsmen_a.png")
 
-    def on_click(self, event, x1: int, y1: int, x2: int, y2: int, canvas: tk.Canvas):
-        if not self.is_on_click:
+    def on_click(self, event, canvas: tk.Canvas, x1: int, y1: int, x2: int, y2: int):
+        if not self.is_chosen:
             if x1 <= event.x <= x2 and y1 <= event.y <= y2:
-                self.is_on_click = True
-                canvas.create_rectangle(x1, y1, x2, y2, width=5, outline="red")
+                self.is_chosen = True
+                self.border = canvas.create_rectangle(x1, y1, x2, y2, width=5, outline="red")
                 return True
         return False
 

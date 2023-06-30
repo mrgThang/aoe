@@ -87,13 +87,15 @@ class Map:
                 x2 = x1 + rect_width
                 y2 = y1 + rect_height
                 is_on_click = square.on_click(event=event, x1=x1, y1=y1, x2=x2, y2=y2, canvas=canvas)
-                if is_on_click is True and self._chosen_craftsman_pos.x is -1:
+                if is_on_click is True and self._chosen_craftsman_pos.x == -1 and type(square) is CraftsMenA:
                     self._chosen_craftsman_pos = square.position
                     return square.position
-                if is_on_click is True and self._chosen_craftsman_pos is not -1:
+                if is_on_click is True and self._chosen_craftsman_pos.x != -1:
                     distance_x = abs(self._chosen_craftsman_pos.x - square.position.x)
                     distance_y = abs(self._chosen_craftsman_pos.y - square.position.y)
                     if max(distance_x, distance_y) == 1:
+                        square.change_color(canvas=canvas)
+                        self._chosen_craftsman_pos = Position(x=-1, y=-1)
                         return square.position
 
         return Position(x=-1, y=-1)
@@ -131,14 +133,21 @@ class MapController:
     _craftsmen_position: Position
     _state: State
     _last_state: State
+    _turn: tk.Label
 
     def __init__(self, window: tk.Tk, frame: tk.Frame, canvas: tk.Canvas):
         self._window = window
         self._frame = frame
         self._canvas = canvas
+
         self._button = tk.Button(frame, text="Click me", command=self.button_click)
         self._button.place(x=INIT_WIDTH - 100, y=0)
         self._button.pack()
+
+        self._turn = tk.Label(self._frame, text="Turn", font=("Arial", 12))
+        self._turn.place(x=INIT_WIDTH - 100, y=100)
+        self._turn.pack()
+
         self._my_map = self.init_map()
         self._state = State.WAITING
         self._last_state = None
@@ -150,6 +159,8 @@ class MapController:
         if self._my_map:
             self._my_map.delete(canvas=self._canvas)
         self._my_map = self.create_map_from_server(data=data)
+        status_data = services.get_game_status_with_game_id()
+        self._turn.config(text=str(status_data.cur_turn))
 
     def resize(self):
         window_width = self._window.winfo_width()
@@ -157,6 +168,7 @@ class MapController:
         if self._my_map:
             self._my_map.resize(canvas=self._canvas, window_width=window_width - 100, window_height=window_height)
         self._button.place(x=window_width - 100, y=0)
+        self._turn.place(x=window_width - 100, y=100)
 
     def create_map_from_server(self, data: GameResp):
         window_width = self._window.winfo_width()
@@ -188,16 +200,15 @@ class MapController:
 
         click_position = self._my_map.on_click(event=event, canvas=self._canvas,
                                                window_width=window_width-100, window_height=window_height)
-        if click_position != -1 and self._state == State.WAITING:
+        if click_position.x != -1 and self._state == State.WAITING:
             self._craftsmen_position = click_position
             self._last_state = self._state
             self._state = State.CHOOSE_ACTION
             self.display_button_choose_action()
 
-        if click_position != -1 and self._state == State.CHOOSE_DIRECTION:
+        if click_position.x != -1 and self._state == State.CHOOSE_DIRECTION:
             self._last_state = self._state
-            self._state = State.CHOOSE_ACTION
-
+            self._state = State.WAITING
 
     def display_button_choose_action(self):
         window_width = self._window.winfo_width()
