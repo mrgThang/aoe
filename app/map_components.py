@@ -13,20 +13,14 @@ class Position:
 
 
 class AbstractObject:
-    position: Position
-    rectangle: int
-    border: int
-    wrapper: int
-    is_chosen: bool
-    craftsmen_id: str
 
     def __init__(self, position: Position):
-        self.position = position
-        self.is_chosen = False
-        self.border = None
-        self.rectangle = None
-        self.wrapper = None
-        self.craftsmen_id = None
+        self.position: Position = position
+        self.is_chosen: bool = False
+        self.border: int = None
+        self.rectangle: int = None
+        self.wrapper: int = None
+        self.craftsmen_id: str = None
 
     def delete(self, canvas: tk.Canvas):
         if self.rectangle:
@@ -38,6 +32,18 @@ class AbstractObject:
         if self.wrapper:
             canvas.delete(self.wrapper)
             self.wrapper = None
+        self.is_chosen = False
+
+    def delete_wrapper(self, canvas: tk.Canvas):
+        if self.wrapper:
+            canvas.delete(self.wrapper)
+            self.wrapper = None
+        self.is_chosen = False
+
+    def delete_border(self, canvas: tk.Canvas):
+        if self.border:
+            canvas.delete(self.border)
+            self.border = None
         self.is_chosen = False
 
     def remove_wrapper(self, canvas: tk.Canvas):
@@ -113,7 +119,7 @@ class AbstractObjectWithImage(AbstractObject):
 
 class Castle(AbstractObjectWithImage):
     def __init__(self, position: Position):
-        super().__init__(position=position, image_path="images/castle.png")
+        super().__init__(position=position, image_path="./images/castle.png")
 
 
 class Pond(AbstractObjectWithColor):
@@ -141,10 +147,10 @@ class Neutral(AbstractObjectWithColor):
             canvas.itemconfig(self.rectangle, fill='blue')
 
 
-class CraftsMenA(AbstractObjectWithImage):
+class CraftsManA(AbstractObjectWithImage):
 
     def __init__(self, position: Position, craftsmen_id: str):
-        super().__init__(position=position, image_path="images/craftsmen_a.png")
+        super().__init__(position=position, image_path="./images/craftsmen_a.png")
         self.craftsmen_id = craftsmen_id
 
     def choose(self, canvas: tk.Canvas,
@@ -153,9 +159,9 @@ class CraftsMenA(AbstractObjectWithImage):
         self.border = canvas.create_rectangle(x1, y1, x2, y2, width=5, outline="red")
 
 
-class CraftsMenB(AbstractObjectWithImage):
+class CraftsManB(AbstractObjectWithImage):
     def __init__(self, position: Position, craftsmen_id: str):
-        super().__init__(position=position, image_path="images/craftsmen_b.png")
+        super().__init__(position=position, image_path="./images/craftsmen_b.png")
         self.craftsmen_id = craftsmen_id
 
     def choose(self, canvas: tk.Canvas,

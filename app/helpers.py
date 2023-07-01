@@ -1,6 +1,6 @@
-from enum import Enum
+from enum import Enum, IntEnum
 
-from models import Position
+from map_components import Position
 
 INIT_WIDTH = 1100
 INIT_HEIGHT = 800
@@ -37,7 +37,7 @@ class Side(str, Enum):
     B = "B"
 
 
-class State(Enum):
+class State(IntEnum):
     WAITING = 0
     CHOOSE_ACTION = 1
     CHOOSE_DIRECTION = 2
@@ -61,7 +61,7 @@ def mapping_from_dist_to_action_type(action: ActionType, craftsmen_pos: Position
         (-1, 0): BuildAndDestroyType.LEFT,
         (1, 0): BuildAndDestroyType.RIGHT,
         (0, -1): BuildAndDestroyType.ABOVE,
-        (0, 1): BuildAndDestroyType.BELOW,
+        (0, 1): BuildAndDestroyType.BELOW
     }
     if action is ActionType.MOVE:
         return move_type_mapping.get(dist)

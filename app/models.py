@@ -4,8 +4,8 @@ from typing import Optional, List, Union
 
 from pydantic import BaseModel, root_validator
 
-import helpers
-from helpers import ActionType, MoveType, BuildAndDestroyType
+from app import helpers
+from app.helpers import ActionType, MoveType, BuildAndDestroyType
 
 
 class GameActionsReq(BaseModel):
@@ -57,6 +57,10 @@ class GameResp(BaseModel):
             side: Optional[helpers.Side]
             id: Optional[str]
 
+        class PondResp(BaseModel):
+            x: Optional[int]
+            y: Optional[int]
+
         name: Optional[str]
         castle_coeff: Optional[int]
         wall_coeff: Optional[int]
@@ -73,12 +77,16 @@ class GameResp(BaseModel):
         def validate_data(cls, data):
             castles = json.loads(data.get("castles"))
             craftsmen = json.loads(data.get("craftsmen"))
+            ponds = json.loads(data.get("ponds"))
             data["castles"] = []
             for c in castles:
                 data.get("castles").append(cls.CastleResp(**c))
             data["craftsmen"] = []
             for c in craftsmen:
                 data.get("craftsmen").append(cls.CraftsMenResp(**c))
+            data["ponds"] = []
+            for p in ponds:
+                data.get("ponds").append(cls.PondResp(**p))
             return data
 
     name: Optional[str]
