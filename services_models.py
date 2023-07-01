@@ -1,19 +1,19 @@
+import json
 from datetime import datetime
 from typing import Optional, List, Union
 
 from pydantic import BaseModel, root_validator
 
 import helpers
-import json
-from helpers import ActionType, ActionParam
+from helpers import ActionType, MoveType, BuildAndDestroyType
 
 
 class GameActionsReq(BaseModel):
 
     class ChildAction(BaseModel):
         action: Optional[ActionType]
-        action_param: Optional[ActionParam]
-        crafts_man_id: Optional[str]
+        action_param: Optional[Union[MoveType, BuildAndDestroyType]]
+        craftsman_id: Optional[str]
 
     turn: Optional[int]
     actions: Optional[List[ChildAction]]
@@ -23,8 +23,8 @@ class GameActionsResp(BaseModel):
 
     class ChildAction(BaseModel):
         action: Optional[ActionType]
-        action_param: Optional[ActionParam]
-        crafts_man_id: Optional[str]
+        action_param: Optional[Union[MoveType, BuildAndDestroyType]]
+        craftsman_id: Optional[str]
         id: Optional[int]
         action_id: Optional[int]
 
@@ -39,7 +39,7 @@ class GameActionsResp(BaseModel):
 class GameResp(BaseModel):
 
     class Side(BaseModel):
-        side: Optional[str]
+        side: Optional[helpers.Side]
         team_name: Optional[str]
         team_id: Optional[int]
         game_id: Optional[int]
@@ -98,6 +98,6 @@ class GameStatusResp(BaseModel):
 
 
 class GameActionsStatusResp(BaseModel):
-    data: Optional[GameActionsResp]
+    data: Optional[List[GameActionsResp]]
     status: Optional[GameStatusResp]
 

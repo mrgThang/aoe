@@ -1,23 +1,29 @@
 import tkinter as tk
+import json
 
-def button_hover(event):
-    button.config(bg='blue')
-
-def button_unhover(event):
-    button.config(bg='red')
+def load_json():
+    data = {
+        "a": 1,
+        "b": 1
+    }
+    try:
+        pretty_json = json.dumps(data, indent=4)
+        json_entry.delete("1.0", tk.END)
+        json_entry.insert(tk.END, pretty_json)
+    except json.JSONDecodeError as e:
+        json_entry.delete("1.0", tk.END)
+        json_entry.insert(tk.END, f"Invalid JSON:\n{str(e)}")
 
 # Create the Tkinter window
 window = tk.Tk()
 
-# Create a button
-button = tk.Button(window, text="Hover Button")
+# Create a Text widget for the JSON editor
+json_entry = tk.Text(window, font=("Courier New", 12))
+json_entry.pack(fill=tk.BOTH, expand=True)
 
-# Bind the Enter and Leave events to the button
-button.bind("<Enter>", button_hover)
-button.bind("<Leave>", button_unhover)
-
-# Pack the button in the window
-button.pack()
+# Create a button to load and format the JSON
+load_button = tk.Button(window, text="Load JSON", command=load_json)
+load_button.pack()
 
 # Run the Tkinter event loop
 window.mainloop()

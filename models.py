@@ -16,19 +16,34 @@ class AbstractObject:
     position: Position
     rectangle: int
     border: int
+    wrapper: int
     is_chosen: bool
+    craftsmen_id: str
 
     def __init__(self, position: Position):
         self.position = position
         self.is_chosen = False
         self.border = None
         self.rectangle = None
+        self.wrapper = None
+        self.craftsmen_id = None
 
     def delete(self, canvas: tk.Canvas):
         if self.rectangle:
             canvas.delete(self.rectangle)
+            self.rectangle = None
         if self.border:
             canvas.delete(self.border)
+            self.border = None
+        if self.wrapper:
+            canvas.delete(self.wrapper)
+            self.wrapper = None
+        self.is_chosen = False
+
+    def remove_wrapper(self, canvas: tk.Canvas):
+        canvas.delete(self.wrapper)
+        self.wrapper = None
+        self.is_chosen = False
 
     def display(self, x1: int, y1: int,
                 x2: int, y2: int, canvas: tk.Canvas):
@@ -38,8 +53,15 @@ class AbstractObject:
                             x2: int, y2: int, canvas: tk.Canvas):
         pass
 
-    def on_click(self, event, canvas: tk.Canvas, x1: int, y1: int, x2: int, y2: int):
+    def on_click(self, event, canvas: tk.Canvas,
+                 x1: int, y1: int, x2: int, y2: int):
+        if x1 <= event.x <= x2 and y1 <= event.y <= y2:
+            return True
         return False
+
+    def choose(self, canvas: tk.Canvas,
+               x1: int, y1: int, x2: int, y2: int):
+        self.is_chosen = True
 
     def on_hover(self, event, canvas: tk.Canvas, x1: int, y1: int, x2: int, y2: int):
         pass
@@ -105,18 +127,14 @@ class Neutral(AbstractObjectWithColor):
 
     def on_hover(self, event, canvas: tk.Canvas, x1: int, y1: int, x2: int, y2: int):
         if x1 <= event.x <= x2 and y1 <= event.y <= y2:
-            canvas.itemconfig(self.rectangle, fill='blue')
+            if not self.wrapper:
+                self.wrapper = canvas.create_rectangle(x1, y1, x2, y2, fill='blue')
+            else:
+                canvas.itemconfig(self.wrapper, fill='blue')
         else:
             if not self.is_chosen:
-                canvas.itemconfig(self.rectangle, fill='white')
-
-    def on_click(self, event, canvas: tk.Canvas,
-                 x1: int, y1: int, x2: int, y2: int):
-        if not self.is_chosen:
-            if x1 <= event.x <= x2 and y1 <= event.y <= y2:
-                self.is_chosen = True
-                return True
-        return False
+                canvas.delete(self.wrapper)
+                self.wrapper = None
 
     def change_color(self, canvas: tk.Canvas):
         if self.is_chosen:
@@ -125,21 +143,25 @@ class Neutral(AbstractObjectWithColor):
 
 class CraftsMenA(AbstractObjectWithImage):
 
-    def __init__(self, position: Position):
+    def __init__(self, position: Position, craftsmen_id: str):
         super().__init__(position=position, image_path="images/craftsmen_a.png")
+        self.craftsmen_id = craftsmen_id
 
-    def on_click(self, event, canvas: tk.Canvas, x1: int, y1: int, x2: int, y2: int):
-        if not self.is_chosen:
-            if x1 <= event.x <= x2 and y1 <= event.y <= y2:
-                self.is_chosen = True
-                self.border = canvas.create_rectangle(x1, y1, x2, y2, width=5, outline="red")
-                return True
-        return False
+    def choose(self, canvas: tk.Canvas,
+               x1: int, y1: int, x2: int, y2: int):
+        self.is_chosen = True
+        self.border = canvas.create_rectangle(x1, y1, x2, y2, width=5, outline="red")
 
 
 class CraftsMenB(AbstractObjectWithImage):
-    def __init__(self, position: Position):
+    def __init__(self, position: Position, craftsmen_id: str):
         super().__init__(position=position, image_path="images/craftsmen_b.png")
+        self.craftsmen_id = craftsmen_id
+
+    def choose(self, canvas: tk.Canvas,
+               x1: int, y1: int, x2: int, y2: int):
+        self.is_chosen = True
+        self.border = canvas.create_rectangle(x1, y1, x2, y2, width=5, outline="red")
 
 
 class WallA(AbstractObjectWithColor):
