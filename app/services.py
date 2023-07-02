@@ -39,9 +39,9 @@ class Service:
                 list_resp.append(GameActionsResp(**actions))
         return list_resp
 
-    def post_game_actions(self, game_actions_req: GameActionsReq) -> GameActionsStatusResp:
+    def post_game_actions(self, game_actions_req: GameActionsReq) -> int:
         data = game_actions_req.dict()
         response = requests.post(self._url + f"/games/{self._game_id}/actions",
                                  json=data,
                                  headers=self._headers)
-        return GameActionsStatusResp(**response.json())
+        return response.status_code

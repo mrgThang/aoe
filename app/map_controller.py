@@ -5,9 +5,9 @@ import os
 import tkinter as tk
 from typing import List
 
-from app.helpers import State, Side, INIT_WIDTH, INFO_BOARD_WIDTH, ActionType, MoveType, INIT_HEIGHT, \
-    mapping_from_dist_to_action_type
+from app.helpers import State, Side, INIT_WIDTH, INFO_BOARD_WIDTH, ActionType, MoveType, INIT_HEIGHT
 from app.map import Map
+from app.utils import mapping_from_dist_to_action_type
 from map_components import Position
 from services import Service
 from models import GameActionsReq, GameResp, GameActionsResp
@@ -94,16 +94,18 @@ class MapController:
     def create_map(self):
         data = self._services.get_game_with_game_id()
         list_actions = self._services.get_game_actions_with_game_id()
+        status_data = self._services.get_game_status_with_game_id()
+
+        self._turn = status_data.cur_turn
+        self._turn_text.config(text=f"Turn: {str(self._turn)}")
+        self.configure_turn_in_request_data()
+
         self.create_map_from_server(data=data, list_actions=list_actions)
         for side in data.sides:
             if side.team_id == self._team_id:
                 self._side = side.side
         self._side_text.config(text=f"Side: {self._side}")
 
-        status_data = self._services.get_game_status_with_game_id()
-        self._turn = status_data.cur_turn
-        self._turn_text.config(text=f"Turn: {str(self._turn)}")
-        self.configure_turn_in_request_data()
         data = self._request_data.dict()
         pretty_json = json.dumps(data, indent=1)
         self._request_data_text.delete("1.0", tk.END)
@@ -132,8 +134,8 @@ class MapController:
         self._my_map.init_map(data=data, window_width=window_width, window_height=window_height)
 
         for i in range(0, len(list_actions)):
-            if self._turn <= list_actions[i].turn and i == len(list_actions) - 1 or \
-                    self._turn <= list_actions[i].turn != list_actions[i + 1].turn:
+            if self._turn >= list_actions[i].turn and i == len(list_actions) - 1 or \
+                    self._turn >= list_actions[i].turn != list_actions[i + 1].turn:
                 destroy_actions = [action for action in list_actions[i].actions if action.action == ActionType.DESTROY]
                 build_actions = [action for action in list_actions[i].actions if action.action == ActionType.BUILD]
                 move_actions = [action for action in list_actions[i].actions if action.action == ActionType.MOVE]
@@ -147,15 +149,17 @@ class MapController:
     def update_map(self):
         data = self._services.get_game_with_game_id()
         list_actions = self._services.get_game_actions_with_game_id()
+        status_data = self._services.get_game_status_with_game_id()
+
+        self._turn = status_data.cur_turn
+        self._turn_text.config(text=f"Turn: {str(self._turn)}")
+        self.configure_turn_in_request_data()
+
         self.update_map_from_server(data=data, list_actions=list_actions)
         for side in data.sides:
             if side.team_id == self._team_id:
                 self._side = side.side
 
-        status_data = self._services.get_game_status_with_game_id()
-        self._turn = status_data.cur_turn
-        self._turn_text.config(text=f"Turn: {str(self._turn)}")
-        self.configure_turn_in_request_data()
         data = self._request_data.dict()
         pretty_json = json.dumps(data, indent=1)
         self._request_data_text.delete("1.0", tk.END)
@@ -179,7 +183,10 @@ class MapController:
             self._my_map = Map(canvas=self._canvas, width=grid_width, height=grid_height)
             self._my_map.init_map(data=data, window_width=window_width, window_height=window_height)
 
-        self._my_map.update()
+        if (self._side is Side.A and self._turn % 2 == 0) or \
+                (self._side is Side.B and self._turn % 2 == 1):
+            self._my_map.remove_wrapper_and_border()
+            self._request_data: GameActionsReq = GameActionsReq(turn=self._turn, actions=[])
         for i in range(0, len(list_actions)):
             if self._turn == list_actions[i].turn and i == len(list_actions) - 1 or \
                     self._turn == list_actions[i].turn and list_actions[i].turn != list_actions[i+1].turn:
@@ -274,8 +281,12 @@ class MapController:
             self._time_remain_text.after(1000, self.update_timer)
             self._time_remain -= 1
         elif self._time_remain < 1:
-            self.update_map()
-            self._time_remain_text.after(200, self.update_timer)
+            status_data = self._services.get_game_status_with_game_id()
+            if self._turn < status_data.cur_turn:
+                self.update_map()
+                self._time_remain_text.after(200, self.update_timer)
+            else:
+                self._time_remain_text.after(500, self.update_timer)
 
     def send_data(self):
         json_text = self._request_data_text.get("1.0", tk.END)

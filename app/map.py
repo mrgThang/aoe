@@ -73,7 +73,9 @@ class Map:
         target_pos = Position(x=craftsman.position.x+x, y=craftsman.position.y+y)
         if 0 <= target_pos.x < self._width and 0 <= target_pos.y < self._height:
             type_of_target = type(self._point[target_pos.x][target_pos.y])
-            if type_of_target is Neutral or type_of_target is Castle:
+            is_target_have_craftsman = self.check_if_position_has_craftsman(
+                position=self._point[target_pos.x][target_pos.y].position)
+            if not is_target_have_craftsman and (type_of_target is Neutral or type_of_target is Castle):
                 craftsman.position = target_pos
 
     def handle_build_action(self, craftsman: AbstractObjectWithImage, child_action: GameActionsResp.ChildAction):
@@ -87,7 +89,9 @@ class Map:
         target_pos = Position(x=craftsman.position.x+x, y=craftsman.position.y+y)
         if 0 <= target_pos.x < self._width and 0 <= target_pos.y < self._height:
             type_of_target = type(self._point[target_pos.x][target_pos.y])
-            if type_of_target is Neutral:
+            is_target_have_craftsman = self.check_if_position_has_craftsman(
+                position=self._point[target_pos.x][target_pos.y].position)
+            if not is_target_have_craftsman and type_of_target is Neutral:
                 if type(craftsman) is CraftsManA:
                     self._point[target_pos.x][target_pos.y] = WallA(position=target_pos)
                 else:
@@ -106,6 +110,13 @@ class Map:
             type_of_target = type(self._point[target_pos.x][target_pos.y])
             if type_of_target is WallA or type_of_target is WallB:
                 self._point[target_pos.x][target_pos.y] = Neutral(position=target_pos)
+
+    def check_if_position_has_craftsman(self, position: Position) \
+            -> bool:
+        for craftsman in self._craftsmen:
+            if craftsman.position.x == position.x and craftsman.position.y == position.y:
+                return True
+        return False
 
     def resize(self, window_width: int, window_height: int):
         rect_width = int(window_width / self._width)
@@ -154,13 +165,14 @@ class Map:
             )
 
     def delete(self):
+        self.remove_wrapper_and_border()
         for row in self._point:
             for square in row:
                 square.delete(canvas=self._canvas)
         for craftsman in self._craftsmen:
             craftsman.delete(canvas=self._canvas)
 
-    def update(self):
+    def remove_wrapper_and_border(self):
         for row in self._point:
             for square in row:
                 square.delete_wrapper(canvas=self._canvas)

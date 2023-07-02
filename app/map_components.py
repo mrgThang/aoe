@@ -2,6 +2,8 @@ import tkinter as tk
 
 from PIL import Image, ImageTk
 
+from app.helpers import WALL_B_COLOR, WALL_A_COLOR, CHOOSE_COLOR, BORDER_COLOR, NEUTRAL_COLOR, POND_COLOR
+
 
 class Position:
     x: int
@@ -89,6 +91,8 @@ class AbstractObjectWithColor(AbstractObject):
 
     def change_the_position(self, x1: int, y1: int,
                             x2: int, y2: int, canvas: tk.Canvas):
+        if not self.rectangle:
+            self.rectangle = canvas.create_rectangle(x1, y1, x2, y2, fill=self.color)
         rect_coords = (x1, y1, x2, y2)
         canvas.coords(self.rectangle, rect_coords)
 
@@ -124,19 +128,19 @@ class Castle(AbstractObjectWithImage):
 
 class Pond(AbstractObjectWithColor):
     def __init__(self, position: Position):
-        super().__init__(position=position, color="black")
+        super().__init__(position=position, color=POND_COLOR)
 
 
 class Neutral(AbstractObjectWithColor):
     def __init__(self, position: Position):
-        super().__init__(position=position, color='white')
+        super().__init__(position=position, color=NEUTRAL_COLOR)
 
     def on_hover(self, event, canvas: tk.Canvas, x1: int, y1: int, x2: int, y2: int):
         if x1 <= event.x <= x2 and y1 <= event.y <= y2:
             if not self.wrapper:
-                self.wrapper = canvas.create_rectangle(x1, y1, x2, y2, fill='blue')
+                self.wrapper = canvas.create_rectangle(x1, y1, x2, y2, fill=CHOOSE_COLOR)
             else:
-                canvas.itemconfig(self.wrapper, fill='blue')
+                canvas.itemconfig(self.wrapper, fill=CHOOSE_COLOR)
         else:
             if not self.is_chosen:
                 canvas.delete(self.wrapper)
@@ -144,7 +148,7 @@ class Neutral(AbstractObjectWithColor):
 
     def change_color(self, canvas: tk.Canvas):
         if self.is_chosen:
-            canvas.itemconfig(self.rectangle, fill='blue')
+            canvas.itemconfig(self.rectangle, fill=CHOOSE_COLOR)
 
 
 class CraftsManA(AbstractObjectWithImage):
@@ -156,7 +160,8 @@ class CraftsManA(AbstractObjectWithImage):
     def choose(self, canvas: tk.Canvas,
                x1: int, y1: int, x2: int, y2: int):
         self.is_chosen = True
-        self.border = canvas.create_rectangle(x1, y1, x2, y2, width=5, outline="red")
+        if not self.border:
+            self.border = canvas.create_rectangle(x1, y1, x2, y2, width=5, outline=BORDER_COLOR)
 
 
 class CraftsManB(AbstractObjectWithImage):
@@ -167,17 +172,18 @@ class CraftsManB(AbstractObjectWithImage):
     def choose(self, canvas: tk.Canvas,
                x1: int, y1: int, x2: int, y2: int):
         self.is_chosen = True
-        self.border = canvas.create_rectangle(x1, y1, x2, y2, width=5, outline="red")
+        if not self.border:
+            self.border = canvas.create_rectangle(x1, y1, x2, y2, width=5, outline=BORDER_COLOR)
 
 
 class WallA(AbstractObjectWithColor):
     def __init__(self, position: Position):
-        super().__init__(position=position, color='blue')
+        super().__init__(position=position, color=WALL_A_COLOR)
 
 
 class WallB(AbstractObjectWithColor):
     def __init__(self, position: Position):
-        super().__init__(position=position, color='pink')
+        super().__init__(position=position, color=WALL_B_COLOR)
 
 
 class OpenTerritoryA(AbstractObjectWithColor):
