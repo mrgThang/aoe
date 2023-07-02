@@ -23,6 +23,9 @@ def check_hover(event):
 window = tk.Tk()
 window.geometry(f"{INIT_WIDTH}x{INIT_HEIGHT}")
 window.bind("<Configure>", resize)
+window.title("AOE")
+icon = tk.PhotoImage(file="images/aoe.png")
+window.iconphoto(True, icon)
 
 frame = tk.Frame(window, width=INIT_WIDTH, height=INIT_HEIGHT)
 frame.pack(anchor=tk.NW)
