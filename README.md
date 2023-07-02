@@ -1,5 +1,5 @@
-# aoe
-aoe game for procon 2023
+# AOE
+AOE game for Procon 2023
 
 # How to run
 
@@ -7,6 +7,10 @@ aoe game for procon 2023
 - Add token, game url, game id from server to `.env` file
 - `python main.py`
 
-# Importance
+# Guide
+[How to play](how_to_play.pdf)
 
-**Resize and change the position of screen before tap "Click Me"**
+# Next tasks
+
+- Display craftsmen id
+- Add logic to display territories
