@@ -1,9 +1,11 @@
+import copy
 import os
+import queue
 import tkinter as tk
 
 from dotenv import load_dotenv
 
-from helpers import Side, State, ActionType, MoveType, BuildAndDestroyType
+from helpers import Side, ActionType, MoveType, BuildAndDestroyType
 from map_components import AbstractObject, Neutral, Position, Castle, CraftsManA, CraftsManB, Pond, \
     AbstractObjectWithImage, WallA, WallB
 from models import GameResp, GameActionsResp
@@ -21,6 +23,7 @@ class Map:
         self._chosen_craftsman_pos: Position = Position(x=-1, y=-1)
         self._point: list[list[AbstractObject]] = []
         self._craftsmen: list[AbstractObjectWithImage] = []
+        self._queue = queue.Queue()
 
     def init_map(self, data: GameResp, window_width: int, window_height: int):
         self.create_map_neutral()
@@ -75,8 +78,16 @@ class Map:
             type_of_target = type(self._point[target_pos.x][target_pos.y])
             is_target_have_craftsman = self.check_if_position_has_craftsman(
                 position=self._point[target_pos.x][target_pos.y].position)
-            if not is_target_have_craftsman and (type_of_target is Neutral or type_of_target is Castle):
-                craftsman.position = target_pos
+            if not is_target_have_craftsman:
+                if type_of_target is Neutral or type_of_target:
+                    craftsman.position = target_pos
+                    craftsman.raise_rectangle(canvas=self._canvas)
+                if type_of_target is WallA and type(craftsman) is CraftsManA:
+                    craftsman.position = target_pos
+                    craftsman.raise_rectangle(canvas=self._canvas)
+                if type_of_target is WallB and type(craftsman) is CraftsManB:
+                    craftsman.position = target_pos
+                    craftsman.raise_rectangle(canvas=self._canvas)
 
     def handle_build_action(self, craftsman: AbstractObjectWithImage, child_action: GameActionsResp.ChildAction):
         build_type_mapping = {
@@ -165,97 +176,113 @@ class Map:
             )
 
     def delete(self):
-        self.remove_wrapper_and_border()
+        self.reset()
         for row in self._point:
             for square in row:
                 square.delete(canvas=self._canvas)
         for craftsman in self._craftsmen:
             craftsman.delete(canvas=self._canvas)
 
-    def remove_wrapper_and_border(self):
+    def reset(self):
         for row in self._point:
             for square in row:
                 square.delete_wrapper(canvas=self._canvas)
+                square.revert_color(canvas=self._canvas)
+        for craftsman in self._craftsmen:
+            craftsman.delete_border(canvas=self._canvas)
+            craftsman.delete_wrapper(canvas=self._canvas)
+            craftsman.is_played = False
+
+    def choose_craftsman(self, side: Side, window_width: int, window_height: int):
+        rect_width = int(window_width / self._width)
+        rect_height = int(window_height / self._height)
+
+        for craftsman in self._craftsmen:
+            if side == Side.A and type(craftsman) is CraftsManA or side == Side.B and type(craftsman) is CraftsManB:
+                if not craftsman.is_played:
+                    x1 = craftsman.position.x * rect_width
+                    y1 = craftsman.position.y * rect_height
+                    x2 = x1 + rect_width
+                    y2 = y1 + rect_height
+                    craftsman.choose(canvas=self._canvas,  x1=x1, y1=y1, x2=x2, y2=y2)
+                    craftsman.is_played = True
+                    self._chosen_craftsman_pos = craftsman.position
+                    return craftsman
+        for craftsman in self._craftsmen:
+            if side == Side.A and type(craftsman) is CraftsManA or side == Side.B and type(craftsman) is CraftsManB:
+                craftsman.is_played = False
+        for craftsman in self._craftsmen:
+            if side == Side.A and type(craftsman) is CraftsManA or side == Side.B and type(craftsman) is CraftsManB:
+                if not craftsman.is_played:
+                    x1 = craftsman.position.x * rect_width
+                    y1 = craftsman.position.y * rect_height
+                    x2 = x1 + rect_width
+                    y2 = y1 + rect_height
+                    craftsman.choose(canvas=self._canvas,  x1=x1, y1=y1, x2=x2, y2=y2)
+                    craftsman.is_played = True
+                    self._chosen_craftsman_pos = craftsman.position
+                    return craftsman
+        return None
+
+    def choose_direction(self, window_width: int, window_height: int, key_list: list):
+        square_x = self._chosen_craftsman_pos.x
+        square_y = self._chosen_craftsman_pos.y
+
+        if "Left" in key_list:
+            square_x -= 1
+        if "Right" in key_list:
+            square_x += 1
+        if "Up" in key_list:
+            square_y -= 1
+        if "Down" in key_list:
+            square_y += 1
+
+        if 0 <= square_x < window_width - 1 and 0 <= square_y < window_height - 1:
+            self.revert_neighbor_color(x=self._chosen_craftsman_pos.x, y=self._chosen_craftsman_pos.y)
+            self._point[square_x][square_y].change_color(canvas=self._canvas)
+            self._point[square_x][square_y].raise_rectangle(canvas=self._canvas)
+            self.update_queue(position=self._point[square_x][square_y].position)
+
+    def update_queue(self, position: Position):
+        self._queue.put(position)
+        if self._queue.qsize() > len(self._craftsmen) / 2:
+            self._queue.get()
+
+    def remove_border_of_craftsman(self):
         for craftsman in self._craftsmen:
             craftsman.delete_border(canvas=self._canvas)
 
-    def on_click(self, event, window_width: int, window_height: int, cur_state: State) -> Position:
-        rect_width = int(window_width / self._width)
-        rect_height = int(window_height / self._height)
-        clicked_craftsman = self.get_clicked_craftsman(event=event,
-                                                       window_width=window_width, window_height=window_height)
-        if clicked_craftsman is not None and cur_state == State.WAITING:
-            self._chosen_craftsman_pos = clicked_craftsman.position
-            x1 = clicked_craftsman.position.x * rect_width
-            y1 = clicked_craftsman.position.y * rect_height
-            x2 = x1 + rect_width
-            y2 = y1 + rect_height
-            clicked_craftsman.choose(canvas=self._canvas, x1=x1, y1=y1, x2=x2, y2=y2)
-            self.remove_neighbor_wrapper(x=clicked_craftsman.position.x, y=clicked_craftsman.position.y)
-            return clicked_craftsman.position
-
-        for row in self._point:
-            for square in row:
-                x1 = square.position.x * rect_width
-                y1 = square.position.y * rect_height
-                x2 = x1 + rect_width
-                y2 = y1 + rect_height
-                is_on_click = square.on_click(event=event, x1=x1, y1=y1, x2=x2, y2=y2, canvas=self._canvas)
-
-                if is_on_click is True and cur_state == State.CHOOSE_DIRECTION:
-                    distance_x = abs(self._chosen_craftsman_pos.x - square.position.x)
-                    distance_y = abs(self._chosen_craftsman_pos.y - square.position.y)
-                    if max(distance_x, distance_y) == 1:
-                        square.change_color(canvas=self._canvas)
-                        self._chosen_craftsman_pos = Position(x=-1, y=-1)
-                        square.choose(canvas=self._canvas, x1=x1, y1=y1, x2=x2, y2=y2)
-                        return square.position
-
-        return Position(x=-1, y=-1)
-
-    def get_clicked_craftsman(self, event, window_width: int, window_height: int) \
-            -> AbstractObjectWithImage:
-        rect_width = int(window_width / self._width)
-        rect_height = int(window_height / self._height)
-
-        for craftsman in self._craftsmen:
-            x1 = craftsman.position.x * rect_width
-            y1 = craftsman.position.y * rect_height
-            x2 = x1 + rect_width
-            y2 = y1 + rect_height
-            is_on_click = craftsman.on_click(event=event, x1=x1, y1=y1, x2=x2, y2=y2, canvas=self._canvas)
-            if is_on_click:
-                return craftsman
-
-        return None
-
-    def remove_neighbor_wrapper(self, x: int, y: int):
-        board_size = len(self._point)
+    def revert_neighbor_color(self, x: int, y: int):
         border_list = [
             (-1, -1), (-1, 0), (-1, 1),
             (0, -1), (0, 1),
             (1, -1), (1, 0), (1, 1)
         ]
         for (i, j) in border_list:
-            if 0 <= x+i < board_size and 0 <= y+j < board_size:
-                self._point[x+i][y+j].remove_wrapper(self._canvas)
+            if 0 <= x + i < self._width and 0 <= y + j < self._height:
+                is_change_color = True
+                queue_current_size = self._queue.qsize()
+                for index in range(0, queue_current_size):
+                    item = self._queue.get()
+                    if item.x == self._point[x + i][y + j].position.x and \
+                            item.y == self._point[x + i][y + j].position.y:
+                        is_change_color = False
+                    self._queue.put(item)
+                if is_change_color:
+                    self._point[x + i][y + j].revert_color(self._canvas)
 
-    def check_hover(self, event, window_width: int, window_height: int):
+    def get_actual_position(self, position: Position, window_width: int, window_height: int):
         rect_width = int(window_width / self._width)
         rect_height = int(window_height / self._height)
+        return position.x * rect_width, position.y * rect_height
 
-        for row in self._point:
-            for square in row:
-                if max(abs(self._chosen_craftsman_pos.x-square.position.x),
-                       abs(self._chosen_craftsman_pos.y-square.position.y)) == 1:
-                    x1 = square.position.x * rect_width
-                    y1 = square.position.y * rect_height
-                    x2 = x1 + rect_width
-                    y2 = y1 + rect_height
-                    square.on_hover(canvas=self._canvas, event=event, x1=x1, y1=y1, x2=x2, y2=y2)
-
-    def find_craftsmen_id_with_position(self, position: Position) -> str:
-        for craftsman in self._craftsmen:
-            if craftsman.position == position:
-                return craftsman.craftsmen_id
-        return "1"
+    def update_choose_action_on_craftsman(self, craftsman: AbstractObject, action_type: ActionType,
+                                          window_width: int, window_height: int):
+        rect_width = int(window_width / self._width)
+        rect_height = int(window_height / self._height)
+        x1 = craftsman.position.x * rect_width
+        y1 = craftsman.position.y * rect_height
+        x2 = x1 + rect_width
+        y2 = y1 + rect_height
+        craftsman.choose_action(canvas=self._canvas, action_type=action_type,
+                                x1=x1, x2=x2, y1=y1, y2=y2)

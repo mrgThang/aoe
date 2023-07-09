@@ -1,28 +1,32 @@
 from app.helpers import ActionType, MoveType, BuildAndDestroyType
-from map_components import Position
 
 
-def mapping_from_dist_to_action_type(action: ActionType, craftsmen_pos: Position, click_pos: Position):
-    dist_x = click_pos.x - craftsmen_pos.x
-    dist_y = click_pos.y - craftsmen_pos.y
-    dist = (dist_x, dist_y)
-    move_type_mapping = {
-        (-1, -1): MoveType.UPPER_LEFT,
-        (-1, 0): MoveType.LEFT,
-        (-1, 1): MoveType.LOWER_LEFT,
-        (0, -1): MoveType.UP,
-        (0, 1): MoveType.DOWN,
-        (1, -1): MoveType.UPPER_RIGHT,
-        (1, 0): MoveType.RIGHT,
-        (1, 1): MoveType.LOWER_RIGHT
-    }
-    build_and_destroy_type_mapping = {
-        (-1, 0): BuildAndDestroyType.LEFT,
-        (1, 0): BuildAndDestroyType.RIGHT,
-        (0, -1): BuildAndDestroyType.ABOVE,
-        (0, 1): BuildAndDestroyType.BELOW
-    }
+def mapping_from_key_list_to_action_type(action: ActionType, key_list: list):
     if action is ActionType.MOVE:
-        return move_type_mapping.get(dist)
+        if "Left" in key_list:
+            if "Up" in key_list:
+                return MoveType.UPPER_LEFT
+            if "Down" in key_list:
+                return MoveType.LOWER_LEFT
+            return MoveType.LEFT
+        if "Right" in key_list:
+            if "Up" in key_list:
+                return MoveType.UPPER_RIGHT
+            if "Down" in key_list:
+                return MoveType.LOWER_RIGHT
+            return MoveType.RIGHT
+        if "Up" in key_list:
+            return MoveType.UP
+        if "Down" in key_list:
+            return MoveType.DOWN
+    elif action is ActionType.BUILD or action is ActionType.DESTROY:
+        if "Left" in key_list:
+            return BuildAndDestroyType.LEFT
+        if "Right" in key_list:
+            return BuildAndDestroyType.RIGHT
+        if "Up" in key_list:
+            return BuildAndDestroyType.ABOVE
+        if "Down" in key_list:
+            return BuildAndDestroyType.BELOW
     else:
-        return build_and_destroy_type_mapping.get(dist)
+        return None
