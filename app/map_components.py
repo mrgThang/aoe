@@ -2,7 +2,7 @@ import tkinter as tk
 
 from PIL import Image, ImageTk
 
-from app.helpers import WALL_B_COLOR, WALL_A_COLOR, CHOOSE_COLOR, BORDER_COLOR, NEUTRAL_COLOR, POND_COLOR
+from app.helpers import WALL_B_COLOR, WALL_A_COLOR, CHOOSE_COLOR, BORDER_COLOR, NEUTRAL_COLOR, POND_COLOR, ActionType
 
 
 class Position:
@@ -67,15 +67,20 @@ class AbstractObject:
             return True
         return False
 
-    def choose(self, canvas: tk.Canvas,
-               x1: int, y1: int, x2: int, y2: int):
-        self.is_chosen = True
-
     def on_hover(self, event, canvas: tk.Canvas, x1: int, y1: int, x2: int, y2: int):
+        pass
+
+    def revert_color(self, canvas: tk.Canvas):
         pass
 
     def change_color(self, canvas: tk.Canvas):
         pass
+
+    def choose_action(self, canvas: tk.Canvas, action_type: ActionType, x1: int, y1: int, x2: int, y2: int):
+        pass
+
+    def raise_rectangle(self, canvas: tk.Canvas):
+        canvas.tag_raise(self.rectangle)
 
 
 class AbstractObjectWithColor(AbstractObject):
@@ -135,20 +140,11 @@ class Neutral(AbstractObjectWithColor):
     def __init__(self, position: Position):
         super().__init__(position=position, color=NEUTRAL_COLOR)
 
-    def on_hover(self, event, canvas: tk.Canvas, x1: int, y1: int, x2: int, y2: int):
-        if x1 <= event.x <= x2 and y1 <= event.y <= y2:
-            if not self.wrapper:
-                self.wrapper = canvas.create_rectangle(x1, y1, x2, y2, fill=CHOOSE_COLOR)
-            else:
-                canvas.itemconfig(self.wrapper, fill=CHOOSE_COLOR)
-        else:
-            if not self.is_chosen:
-                canvas.delete(self.wrapper)
-                self.wrapper = None
+    def revert_color(self, canvas: tk.Canvas):
+        canvas.itemconfig(self.rectangle, fill=NEUTRAL_COLOR)
 
     def change_color(self, canvas: tk.Canvas):
-        if self.is_chosen:
-            canvas.itemconfig(self.rectangle, fill=CHOOSE_COLOR)
+        canvas.itemconfig(self.rectangle, fill=CHOOSE_COLOR)
 
 
 class CraftsManA(AbstractObjectWithImage):
@@ -156,18 +152,28 @@ class CraftsManA(AbstractObjectWithImage):
     def __init__(self, position: Position, craftsmen_id: str):
         super().__init__(position=position, image_path="./images/craftsmen_a.png")
         self.craftsmen_id = craftsmen_id
+        self.is_played = False
 
     def choose(self, canvas: tk.Canvas,
                x1: int, y1: int, x2: int, y2: int):
         self.is_chosen = True
         if not self.border:
             self.border = canvas.create_rectangle(x1, y1, x2, y2, width=5, outline=BORDER_COLOR)
+
+    def choose_action(self, canvas: tk.Canvas, action_type: ActionType, x1: int, y1: int, x2: int, y2: int):
+        if self.wrapper:
+            canvas.delete(self.wrapper)
+            self.wrapper = None
+        text_x = int(x1 + (x2 - x1) / 2)
+        text_y = int(y1 + (y2 - y1) / 2)
+        self.wrapper = canvas.create_text(text_x, text_y, text=action_type, font=("Arial", 10), fill=BORDER_COLOR)
 
 
 class CraftsManB(AbstractObjectWithImage):
     def __init__(self, position: Position, craftsmen_id: str):
         super().__init__(position=position, image_path="./images/craftsmen_b.png")
         self.craftsmen_id = craftsmen_id
+        self.is_played = False
 
     def choose(self, canvas: tk.Canvas,
                x1: int, y1: int, x2: int, y2: int):
@@ -175,15 +181,35 @@ class CraftsManB(AbstractObjectWithImage):
         if not self.border:
             self.border = canvas.create_rectangle(x1, y1, x2, y2, width=5, outline=BORDER_COLOR)
 
+    def choose_action(self, canvas: tk.Canvas, action_type: ActionType, x1: int, y1: int, x2: int, y2: int):
+        if self.wrapper:
+            canvas.delete(self.wrapper)
+            self.wrapper = None
+        text_x = int(x1 + (x2 - x1) / 2)
+        text_y = int(y1 + (y2 - y1) / 2)
+        self.wrapper = canvas.create_text(text_x, text_y, text=action_type, font=("Arial", 10), fill=BORDER_COLOR)
+
 
 class WallA(AbstractObjectWithColor):
     def __init__(self, position: Position):
         super().__init__(position=position, color=WALL_A_COLOR)
 
+    def revert_color(self, canvas: tk.Canvas):
+        canvas.itemconfig(self.rectangle, fill=WALL_A_COLOR)
+
+    def change_color(self, canvas: tk.Canvas):
+        canvas.itemconfig(self.rectangle, fill=CHOOSE_COLOR)
+
 
 class WallB(AbstractObjectWithColor):
     def __init__(self, position: Position):
         super().__init__(position=position, color=WALL_B_COLOR)
+
+    def revert_color(self, canvas: tk.Canvas):
+        canvas.itemconfig(self.rectangle, fill=WALL_B_COLOR)
+
+    def change_color(self, canvas: tk.Canvas):
+        canvas.itemconfig(self.rectangle, fill=CHOOSE_COLOR)
 
 
 class OpenTerritoryA(AbstractObjectWithColor):
