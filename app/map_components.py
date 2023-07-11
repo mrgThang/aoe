@@ -23,6 +23,10 @@ class AbstractObject:
         self.rectangle: int = None
         self.wrapper: int = None
         self.craftsmen_id: str = None
+        self.is_close_territory_a = False
+        self.is_close_territory_b = False
+        self.is_open_territory_a = False
+        self.is_open_territory_b = False
 
     def delete(self, canvas: tk.Canvas):
         if self.rectangle:

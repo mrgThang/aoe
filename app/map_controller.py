@@ -64,6 +64,10 @@ class MapController:
         self._response_text.place(x=INIT_WIDTH-INFO_BOARD_WIDTH, y=600)
         self._response_text.pack()
 
+        self._point_text: tk.Label = tk.Label(self._frame, text="A:0 B:0", font=("Arial", 12))
+        self._point_text.place(x=INIT_WIDTH - INFO_BOARD_WIDTH, y=650)
+        self._point_text.pack()
+
         self._my_map: Map = None
         self.init_map()
 
@@ -91,6 +95,7 @@ class MapController:
         self._request_data_text.place(x=window_width-INFO_BOARD_WIDTH, y=200)
         self._send_request_button.place(x=window_width-INFO_BOARD_WIDTH, y=550)
         self._response_text.place(x=window_width-INFO_BOARD_WIDTH, y=600)
+        self._point_text.place(x=window_width - INFO_BOARD_WIDTH, y=650)
 
     def create_map(self):
         data = self._services.get_game_with_game_id()
@@ -106,6 +111,8 @@ class MapController:
             if side.team_id == self._team_id:
                 self._side = side.side
         self._side_text.config(text=f"Side: {self._side}")
+        (point_a, point_b) = self._my_map.calculate_point()
+        self._point_text.config(text=f"A:{point_a} B:{point_b}")
 
         data = self._request_data.dict()
         pretty_json = json.dumps(data, indent=1)
@@ -147,6 +154,7 @@ class MapController:
                     self._my_map.change_map_component_from_actions_response(child_action=action)
                 for action in move_actions:
                     self._my_map.change_map_component_from_actions_response(child_action=action)
+                self._my_map.update_territory_status()
 
     def update_map(self):
         data = self._services.get_game_with_game_id()
@@ -161,6 +169,8 @@ class MapController:
         for side in data.sides:
             if side.team_id == self._team_id:
                 self._side = side.side
+        (point_a, point_b) = self._my_map.calculate_point()
+        self._point_text.config(text=f"A:{point_a} B:{point_b}")
 
         data = self._request_data.dict()
         pretty_json = json.dumps(data, indent=1)
@@ -204,6 +214,7 @@ class MapController:
                     self._my_map.change_map_component_from_actions_response(child_action=action)
                 for action in move_actions:
                     self._my_map.change_map_component_from_actions_response(child_action=action)
+                self._my_map.update_territory_status()
 
     def start(self):
         window_width = self._window.winfo_width()

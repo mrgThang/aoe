@@ -24,6 +24,10 @@ class Map:
         self._point: list[list[AbstractObject]] = []
         self._craftsmen: list[AbstractObjectWithImage] = []
         self._queue = queue.Queue()
+        self._castle_point = 0
+        self._territory_point = 0
+        self._wall_point = 0
+        self._is_checked: list[list[bool]] = []
 
     def init_map(self, data: GameResp, window_width: int, window_height: int):
         self.create_map_neutral()
@@ -39,6 +43,9 @@ class Map:
     def create_map_component(self, data: GameResp):
         if data is None or data.field is None:
             return
+        self._castle_point = data.field.castle_coeff
+        self._territory_point = data.field.territory_coeff
+        self._wall_point = data.field.wall_coeff
         for castle in data.field.castles:
             self._point[castle.x][castle.y] = Castle(position=Position(x=castle.x, y=castle.y))
         for pond in data.field.ponds:
@@ -73,7 +80,7 @@ class Map:
             MoveType.LOWER_RIGHT: (1, 1)
         }
         (x, y) = move_type_mapping.get(child_action.action_param)
-        target_pos = Position(x=craftsman.position.x+x, y=craftsman.position.y+y)
+        target_pos = Position(x=craftsman.position.x + x, y=craftsman.position.y + y)
         if 0 <= target_pos.x < self._width and 0 <= target_pos.y < self._height:
             type_of_target = type(self._point[target_pos.x][target_pos.y])
             is_target_have_craftsman = self.check_if_position_has_craftsman(
@@ -97,7 +104,7 @@ class Map:
             BuildAndDestroyType.BELOW: (0, 1)
         }
         (x, y) = build_type_mapping.get(child_action.action_param)
-        target_pos = Position(x=craftsman.position.x+x, y=craftsman.position.y+y)
+        target_pos = Position(x=craftsman.position.x + x, y=craftsman.position.y + y)
         if 0 <= target_pos.x < self._width and 0 <= target_pos.y < self._height:
             type_of_target = type(self._point[target_pos.x][target_pos.y])
             is_target_have_craftsman = self.check_if_position_has_craftsman(
@@ -116,7 +123,7 @@ class Map:
             BuildAndDestroyType.BELOW: (0, 1)
         }
         (x, y) = destroy_type_mapping.get(child_action.action_param)
-        target_pos = Position(x=craftsman.position.x+x, y=craftsman.position.y+y)
+        target_pos = Position(x=craftsman.position.x + x, y=craftsman.position.y + y)
         if 0 <= target_pos.x < self._width and 0 <= target_pos.y < self._height:
             type_of_target = type(self._point[target_pos.x][target_pos.y])
             if type_of_target is WallA or type_of_target is WallB:
@@ -205,7 +212,7 @@ class Map:
                     y1 = craftsman.position.y * rect_height
                     x2 = x1 + rect_width
                     y2 = y1 + rect_height
-                    craftsman.choose(canvas=self._canvas,  x1=x1, y1=y1, x2=x2, y2=y2)
+                    craftsman.choose(canvas=self._canvas, x1=x1, y1=y1, x2=x2, y2=y2)
                     craftsman.is_played = True
                     self._chosen_craftsman_pos = craftsman.position
                     return craftsman
@@ -219,7 +226,7 @@ class Map:
                     y1 = craftsman.position.y * rect_height
                     x2 = x1 + rect_width
                     y2 = y1 + rect_height
-                    craftsman.choose(canvas=self._canvas,  x1=x1, y1=y1, x2=x2, y2=y2)
+                    craftsman.choose(canvas=self._canvas, x1=x1, y1=y1, x2=x2, y2=y2)
                     craftsman.is_played = True
                     self._chosen_craftsman_pos = craftsman.position
                     return craftsman
@@ -287,3 +294,92 @@ class Map:
         y2 = y1 + rect_height
         craftsman.choose_action(canvas=self._canvas, action_type=action_type,
                                 x1=x1, x2=x2, y1=y1, y2=y2)
+
+    def calculate_point(self) -> (int, int):
+        point_a = 0
+        point_b = 0
+
+        for row in self._point:
+            for square in row:
+                if type(square) is WallA:
+                    point_a += self._wall_point
+                if type(square) is WallB:
+                    point_b += self._wall_point
+                if square.is_close_territory_a or square.is_open_territory_a:
+                    if type(square) is Castle:
+                        point_a += self._castle_point
+                    else:
+                        point_a += self._territory_point
+                if square.is_close_territory_b or square.is_open_territory_b:
+                    if type(square) is Castle:
+                        point_b += self._castle_point
+                    else:
+                        point_b += self._territory_point
+
+        return point_a, point_b
+
+    def update_territory_status(self):
+        for row in self._point:
+            for square in row:
+                is_close_territory_a = self.check_if_square_is_close_territory(square, side=Side.A)
+                is_close_territory_b = self.check_if_square_is_close_territory(square, side=Side.B)
+                if is_close_territory_a and is_close_territory_b:
+                    square.is_close_territory_a = True
+                    square.is_close_territory_b = True
+                    square.is_open_territory_a = False
+                    square.is_open_territory_b = False
+                if is_close_territory_a:
+                    square.is_close_territory_a = True
+                    square.is_close_territory_b = False
+                    square.is_open_territory_a = False
+                    square.is_open_territory_b = False
+                if is_close_territory_b:
+                    square.is_close_territory_a = False
+                    square.is_close_territory_b = True
+                    square.is_open_territory_a = False
+                    square.is_open_territory_b = False
+                else:
+                    if square.is_close_territory_a:
+                        square.is_close_territory_a = False
+                        square.is_close_territory_b = False
+                        square.is_open_territory_a = True
+                        square.is_open_territory_b = False
+                    if square.is_close_territory_b:
+                        square.is_close_territory_a = False
+                        square.is_close_territory_b = False
+                        square.is_open_territory_a = False
+                        square.is_open_territory_b = True
+
+    def check_if_square_is_close_territory(self, square, side: Side):
+        if type(square) is WallA and side == Side.A:
+            return False
+        if type(square) is WallB and side == Side.B:
+            return False
+        self._is_checked = [[
+            False
+            for y in range(self._height)]
+            for x in range(self._width)]
+        return self.bfs(square=square, side=side)
+
+    def bfs(self, square, side: Side):
+        x = square.position.x
+        y = square.position.y
+        if self._is_checked[x][y]:
+            return True
+        self._is_checked[x][y] = True
+        if type(self._point[x][y]) is WallA and side == Side.A:
+            return True
+        if type(self._point[x][y]) is WallB and side == Side.B:
+            return True
+        if x == 0 or y == 0 \
+                or x == self._width-1 or y == self._height-1:
+            return False
+        if not self.bfs(square=self._point[x-1][y], side=side):
+            return False
+        if not self.bfs(square=self._point[x][y-1], side=side):
+            return False
+        if not self.bfs(square=self._point[x+1][y], side=side):
+            return False
+        if not self.bfs(square=self._point[x][y+1], side=side):
+            return False
+        return True
