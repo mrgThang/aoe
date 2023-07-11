@@ -239,10 +239,10 @@ class Map:
             square_y += 1
 
         if 0 <= square_x < window_width - 1 and 0 <= square_y < window_height - 1:
-            self.revert_neighbor_color(x=self._chosen_craftsman_pos.x, y=self._chosen_craftsman_pos.y)
             self._point[square_x][square_y].change_color(canvas=self._canvas)
             self._point[square_x][square_y].raise_rectangle(canvas=self._canvas)
             self.update_queue(position=self._point[square_x][square_y].position)
+            self.revert_neighbor_color(x=self._chosen_craftsman_pos.x, y=self._chosen_craftsman_pos.y)
 
     def update_queue(self, position: Position):
         self._queue.put(position)
