@@ -193,8 +193,8 @@ class MapController:
             if self._destroy_button:
                 self._destroy_button.destroy()
         for i in range(0, len(list_actions)):
-            if self._turn == list_actions[i].turn and i == len(list_actions) - 1 or \
-                    self._turn == list_actions[i].turn and list_actions[i].turn != list_actions[i+1].turn:
+            if (self._turn == list_actions[i].turn and i == len(list_actions) - 1) or \
+                    (self._turn == list_actions[i].turn and list_actions[i].turn != list_actions[i+1].turn):
                 destroy_actions = [action for action in list_actions[i].actions if action.action == ActionType.DESTROY]
                 build_actions = [action for action in list_actions[i].actions if action.action == ActionType.BUILD]
                 move_actions = [action for action in list_actions[i].actions if action.action == ActionType.MOVE]

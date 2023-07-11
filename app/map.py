@@ -79,7 +79,7 @@ class Map:
             is_target_have_craftsman = self.check_if_position_has_craftsman(
                 position=self._point[target_pos.x][target_pos.y].position)
             if not is_target_have_craftsman:
-                if type_of_target is Neutral or type_of_target:
+                if type_of_target is Neutral or type_of_target is Castle:
                     craftsman.position = target_pos
                     craftsman.raise_rectangle(canvas=self._canvas)
                 if type_of_target is WallA and type(craftsman) is CraftsManA:
@@ -151,6 +151,7 @@ class Map:
             craftsman.change_the_position(
                 x1=x1, y1=y1, x2=x2, y2=y2, canvas=self._canvas
             )
+            craftsman.raise_rectangle(canvas=self._canvas)
 
     def display(self, window_width: int, window_height: int):
         rect_width = int(window_width / self._width)
