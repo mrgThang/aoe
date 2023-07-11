@@ -328,12 +328,12 @@ class Map:
                     square.is_close_territory_b = True
                     square.is_open_territory_a = False
                     square.is_open_territory_b = False
-                if is_close_territory_a:
+                elif is_close_territory_a:
                     square.is_close_territory_a = True
                     square.is_close_territory_b = False
                     square.is_open_territory_a = False
                     square.is_open_territory_b = False
-                if is_close_territory_b:
+                elif is_close_territory_b:
                     square.is_close_territory_a = False
                     square.is_close_territory_b = True
                     square.is_open_territory_a = False
