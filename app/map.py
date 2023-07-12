@@ -235,6 +235,27 @@ class Map:
                     return craftsman
         return None
 
+    def choose_craftsman_without_loop(self, side: Side, window_width: int, window_height: int):
+        rect_width = int(window_width / self._width)
+        rect_height = int(window_height / self._height)
+
+        for craftsman in self._craftsmen:
+            if side == Side.A and type(craftsman) is CraftsManA or side == Side.B and type(craftsman) is CraftsManB:
+                if not craftsman.is_played:
+                    x1 = craftsman.position.x * rect_width
+                    y1 = craftsman.position.y * rect_height
+                    x2 = x1 + rect_width
+                    y2 = y1 + rect_height
+                    craftsman.choose(canvas=self._canvas, x1=x1, y1=y1, x2=x2, y2=y2)
+                    craftsman.is_played = True
+                    self._chosen_craftsman_pos = craftsman.position
+                    return craftsman
+        return None
+
+    def remove_is_played(self):
+        for craftsman in self._craftsmen:
+            craftsman.is_played = False
+
     def choose_direction(self, window_width: int, window_height: int, key_list: list):
         square_x = self._chosen_craftsman_pos.x
         square_y = self._chosen_craftsman_pos.y
