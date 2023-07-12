@@ -1,29 +1,49 @@
-import tkinter as tk
-import json
+from app.helpers import Side, ActionType, BuildAndDestroyType
+from app.map import Map, create_new_map_from_old_map_and_actions
+from app.models import GameResp, GameActionsResp
 
-def load_json():
-    data = {
-        "a": 1,
-        "b": 1
-    }
-    try:
-        pretty_json = json.dumps(data, indent=4)
-        json_entry.delete("1.0", tk.END)
-        json_entry.insert(tk.END, pretty_json)
-    except json.JSONDecodeError as e:
-        json_entry.delete("1.0", tk.END)
-        json_entry.insert(tk.END, f"Invalid JSON:\n{str(e)}")
+init_map = Map(width=11, height=11, canvas=None, start_queue=False)
 
-# Create the Tkinter window
-window = tk.Tk()
+init_map.init_map_but_not_render(
+    data=GameResp(
+        field=GameResp.Field(
+            castle_coeff=10,
+            wall_coeff=1,
+            territory_coeff=1,
+            width=11,
+            height=11,
+            ponds=[
+                GameResp.Field.PondResp(x=0, y=0)
+            ],
+            castles=[GameResp.Field.CastleResp(x=7, y=7)],
+            craftsmen=[
+                GameResp.Field.CraftsMenResp(x=1, y=1, side=Side.A, id="1"),
+                GameResp.Field.CraftsMenResp(x=2, y=2, side=Side.A, id="2"),
+                GameResp.Field.CraftsMenResp(x=3, y=3, side=Side.A, id="3"),
+                GameResp.Field.CraftsMenResp(x=4, y=4, side=Side.B, id="4"),
+                GameResp.Field.CraftsMenResp(x=5, y=5, side=Side.B, id="5"),
+                GameResp.Field.CraftsMenResp(x=6, y=6, side=Side.B, id="6")
+            ]
+        )
+    )
+)
 
-# Create a Text widget for the JSON editor
-json_entry = tk.Text(window, font=("Courier New", 12))
-json_entry.pack(fill=tk.BOTH, expand=True)
-
-# Create a button to load and format the JSON
-load_button = tk.Button(window, text="Load JSON", command=load_json)
-load_button.pack()
-
-# Run the Tkinter event loop
-window.mainloop()
+print(init_map.calculate_point())
+new_map = create_new_map_from_old_map_and_actions(
+    old_map=init_map,
+    list_actions=GameActionsResp(
+        actions=[
+            GameActionsResp.ChildAction(
+                action=ActionType.BUILD,
+                action_param=BuildAndDestroyType.LEFT,
+                craftsman_id="1"
+            ),
+            GameActionsResp.ChildAction(
+                action=ActionType.BUILD,
+                action_param=BuildAndDestroyType.LEFT,
+                craftsman_id="2"
+            ),
+        ]
+    )
+)
+print(new_map.calculate_point())

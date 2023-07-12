@@ -68,13 +68,15 @@ class GameResp(BaseModel):
         id: Optional[int]
         width: Optional[int]
         height: Optional[int]
-        ponds: Optional[str]
+        ponds: Optional[Union[List[PondResp], str]]
         castles: Optional[Union[List[CastleResp], str]]
         craftsmen: Optional[Union[List[CraftsMenResp], str]]
         match_id: Optional[int]
 
         @root_validator()
         def validate_data(cls, data):
+            if type(data.get("castles")) is list:
+                return data
             castles = json.loads(data.get("castles"))
             craftsmen = json.loads(data.get("craftsmen"))
             ponds = json.loads(data.get("ponds"))

@@ -15,7 +15,7 @@ load_dotenv(os.path.join(BASE_DIR, '../.env'))
 
 
 class Map:
-    def __init__(self, width: int, height: int, canvas: tk.Canvas):
+    def __init__(self, width: int, height: int, canvas: tk.Canvas, start_queue: bool = True):
         self._width: int = width
         self._height: int = height
         self._canvas = canvas
@@ -23,7 +23,10 @@ class Map:
         self._chosen_craftsman_pos: Position = Position(x=-1, y=-1)
         self._point: list[list[AbstractObject]] = []
         self._craftsmen: list[AbstractObjectWithImage] = []
-        self._queue = queue.Queue()
+        if start_queue:
+            self._queue = queue.Queue()
+        else:
+            self._queue = None
         self._castle_point = 0
         self._territory_point = 0
         self._wall_point = 0
@@ -383,3 +386,93 @@ class Map:
         if not self.bfs(square=self._point[x][y+1], side=side):
             return False
         return True
+
+    def init_map_but_not_render(self, data: GameResp):
+        self.create_map_neutral()
+        self.create_map_component(data=data)
+
+    def handle_actions_but_not_render(self, child_action: GameActionsResp.ChildAction):
+        for craftsman in self._craftsmen:
+            if craftsman.craftsmen_id == child_action.craftsman_id:
+                if child_action.action == ActionType.MOVE:
+                    self.handle_move_action_but_not_render(craftsman=craftsman, child_action=child_action)
+                if child_action.action == ActionType.BUILD:
+                    self.handle_build_action_but_not_render(craftsman=craftsman, child_action=child_action)
+                if child_action.action == ActionType.DESTROY:
+                    self.handle_destroy_action_but_not_render(craftsman=craftsman, child_action=child_action)
+
+    def handle_move_action_but_not_render(self, craftsman: AbstractObject, child_action: GameActionsResp.ChildAction):
+        move_type_mapping = {
+            MoveType.UPPER_LEFT: (-1, -1),
+            MoveType.LEFT: (-1, 0),
+            MoveType.LOWER_LEFT: (-1, 1),
+            MoveType.UP: (0, -1),
+            MoveType.DOWN: (0, 1),
+            MoveType.UPPER_RIGHT: (1, -1),
+            MoveType.RIGHT: (1, 0),
+            MoveType.LOWER_RIGHT: (1, 1)
+        }
+        (x, y) = move_type_mapping.get(child_action.action_param)
+        target_pos = Position(x=craftsman.position.x + x, y=craftsman.position.y + y)
+        if 0 <= target_pos.x < self._width and 0 <= target_pos.y < self._height:
+            type_of_target = type(self._point[target_pos.x][target_pos.y])
+            is_target_have_craftsman = self.check_if_position_has_craftsman(
+                position=self._point[target_pos.x][target_pos.y].position)
+            if not is_target_have_craftsman:
+                if type_of_target is Neutral or type_of_target is Castle:
+                    craftsman.position = target_pos
+                if type_of_target is WallA and type(craftsman) is CraftsManA:
+                    craftsman.position = target_pos
+                if type_of_target is WallB and type(craftsman) is CraftsManB:
+                    craftsman.position = target_pos
+
+    def handle_build_action_but_not_render(self, craftsman: AbstractObject, child_action: GameActionsResp.ChildAction):
+        build_type_mapping = {
+            BuildAndDestroyType.LEFT: (-1, 0),
+            BuildAndDestroyType.RIGHT: (1, 0),
+            BuildAndDestroyType.ABOVE: (0, -1),
+            BuildAndDestroyType.BELOW: (0, 1)
+        }
+        (x, y) = build_type_mapping.get(child_action.action_param)
+        target_pos = Position(x=craftsman.position.x + x, y=craftsman.position.y + y)
+        if 0 <= target_pos.x < self._width and 0 <= target_pos.y < self._height:
+            type_of_target = type(self._point[target_pos.x][target_pos.y])
+            is_target_have_craftsman = self.check_if_position_has_craftsman(
+                position=self._point[target_pos.x][target_pos.y].position)
+            if not is_target_have_craftsman and type_of_target is Neutral:
+                if type(craftsman) is CraftsManA:
+                    self._point[target_pos.x][target_pos.y] = WallA(position=target_pos)
+                else:
+                    self._point[target_pos.x][target_pos.y] = WallB(position=target_pos)
+
+    def handle_destroy_action_but_not_render(self, craftsman: AbstractObject, child_action: GameActionsResp.ChildAction):
+        destroy_type_mapping = {
+            BuildAndDestroyType.LEFT: (-1, 0),
+            BuildAndDestroyType.RIGHT: (1, 0),
+            BuildAndDestroyType.ABOVE: (0, -1),
+            BuildAndDestroyType.BELOW: (0, 1)
+        }
+        (x, y) = destroy_type_mapping.get(child_action.action_param)
+        target_pos = Position(x=craftsman.position.x + x, y=craftsman.position.y + y)
+        if 0 <= target_pos.x < self._width and 0 <= target_pos.y < self._height:
+            type_of_target = type(self._point[target_pos.x][target_pos.y])
+            if type_of_target is WallA or type_of_target is WallB:
+                self._point[target_pos.x][target_pos.y] = Neutral(position=target_pos)
+
+
+def create_new_map_from_old_map_and_actions(old_map: Map, list_actions: GameActionsResp):
+    new_map: Map = copy.deepcopy(old_map)
+    destroy_actions = [action for action in list_actions.actions if action.action == ActionType.DESTROY]
+    build_actions = [action for action in list_actions.actions if action.action == ActionType.BUILD]
+    move_actions = [action for action in list_actions.actions if action.action == ActionType.MOVE]
+
+    for child_action in destroy_actions:
+        new_map.handle_actions_but_not_render(child_action=child_action)
+    for child_action in build_actions:
+        new_map.handle_actions_but_not_render(child_action=child_action)
+    for child_action in move_actions:
+        new_map.handle_actions_but_not_render(child_action=child_action)
+
+    new_map.update_territory_status()
+
+    return new_map
