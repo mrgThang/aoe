@@ -97,6 +97,18 @@ class MapController:
         self._response_text.place(x=window_width-INFO_BOARD_WIDTH, y=600)
         self._point_text.place(x=window_width - INFO_BOARD_WIDTH, y=650)
 
+    def clean(self, list_actions: list[GameActionsResp]) -> list[GameActionsResp]:
+        m = {}
+        r = []
+        for action in list_actions:
+            m[action.turn] = action
+
+        t = dict(sorted(m.items()))
+
+        for key in t.keys():
+            r.append(t[key])
+        return r
+
     def create_map(self):
         data = self._services.get_game_with_game_id()
         list_actions = self._services.get_game_actions_with_game_id()
@@ -141,6 +153,8 @@ class MapController:
             self._my_map.delete()
         self._my_map = Map(canvas=self._canvas, width=grid_width, height=grid_height)
         self._my_map.init_map(data=data, window_width=window_width, window_height=window_height)
+
+        list_actions = self.clean(list_actions)
 
         for i in range(0, len(list_actions)):
             if self._turn >= list_actions[i].turn and i == len(list_actions) - 1 or \
@@ -202,6 +216,9 @@ class MapController:
                 self._build_button.destroy()
             if self._destroy_button:
                 self._destroy_button.destroy()
+
+        list_actions = self.clean(list_actions)
+
         for i in range(0, len(list_actions)):
             if (self._turn == list_actions[i].turn and i == len(list_actions) - 1) or \
                     (self._turn == list_actions[i].turn and list_actions[i].turn != list_actions[i+1].turn):
